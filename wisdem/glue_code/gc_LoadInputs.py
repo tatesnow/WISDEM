@@ -47,6 +47,10 @@ class WindTurbineOntologyPython(object):
         # Offshore flag
         self.modeling_options['offshore'] = 'water_depth' in self.wt_init['environment'] and self.wt_init['environment']['water_depth'] > 0.0
 
+        # External loads flag for when WISDEM is coupled to OpenFAST in WEIS or other codes
+        # This will always be False here and only set to True from the external code
+        self.modeling_options['flags']['external_loads'] = False
+        
         # Put in some logic about what needs to be in there
         flags = self.modeling_options['flags']
 

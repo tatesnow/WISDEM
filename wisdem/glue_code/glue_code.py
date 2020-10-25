@@ -136,10 +136,12 @@ class WT_RNTA(om.Group):
         # self.connect('sse.powercurve.rated_V',        'rlds.aero_rated.V_load')
         if modeling_options['Analysis_Flags']['ServoSE']:
             self.connect('sse.powercurve.rated_V',        'sse.gust.V_hub')
-            self.connect('sse.gust.V_gust',              ['rlds.aero_gust.V_load', 'rlds.aero_hub_loads.V_load'])
-            self.connect('env.shear_exp',                ['sse.powercurve.shearExp', 'rlds.aero_gust.shearExp']) 
-            self.connect('sse.powercurve.rated_Omega',   ['rlds.Omega_load', 'rlds.tot_loads_gust.aeroloads_Omega', 'rlds.constr.rated_Omega'])
-            self.connect('sse.powercurve.rated_pitch',   ['rlds.pitch_load', 'rlds.tot_loads_gust.aeroloads_pitch'])
+            self.connect('env.shear_exp',                'sse.powercurve.shearExp')
+            if not modeling_options['flags']['external_loads']:
+                self.connect('sse.gust.V_gust',              ['rlds.aero_gust.V_load', 'rlds.aero_hub_loads.V_load'])
+                self.connect('env.shear_exp',                'rlds.aero_gust.shearExp') 
+                self.connect('sse.powercurve.rated_Omega',   ['rlds.Omega_load', 'rlds.tot_loads_gust.aeroloads_Omega', 'rlds.constr.rated_Omega'])
+                self.connect('sse.powercurve.rated_pitch',   ['rlds.pitch_load', 'rlds.tot_loads_gust.aeroloads_pitch'])
 
         # Connections to ServoSE
         if modeling_options['Analysis_Flags']['ServoSE']:
@@ -192,18 +194,19 @@ class WT_RNTA(om.Group):
             self.connect('ccblade.alpha',  'stall_check.aoa_along_span')
 
         # Connections to rotor load analysis
-        self.connect('blade.interp_airfoils.cl_interp','rlds.airfoils_cl')
-        self.connect('blade.interp_airfoils.cd_interp','rlds.airfoils_cd')
-        self.connect('blade.interp_airfoils.cm_interp','rlds.airfoils_cm')
-        self.connect('airfoils.aoa',              'rlds.airfoils_aoa')
-        self.connect('airfoils.Re',               'rlds.airfoils_Re')
-        self.connect('assembly.rotor_radius',     'rlds.Rtip')
-        self.connect('hub.radius',                'rlds.Rhub')
-        self.connect('env.rho_air',               'rlds.rho')
-        self.connect('env.mu_air',                'rlds.mu')
-        self.connect('env.shear_exp',             'rlds.aero_hub_loads.shearExp')
-        self.connect('assembly.hub_height',       'rlds.hub_height')
-        self.connect('configuration.n_blades',    'rlds.nBlades')
+        if not modeling_options['flags']['external_loads']:
+            self.connect('blade.interp_airfoils.cl_interp','rlds.airfoils_cl')
+            self.connect('blade.interp_airfoils.cd_interp','rlds.airfoils_cd')
+            self.connect('blade.interp_airfoils.cm_interp','rlds.airfoils_cm')
+            self.connect('airfoils.aoa',              'rlds.airfoils_aoa')
+            self.connect('airfoils.Re',               'rlds.airfoils_Re')
+            self.connect('assembly.rotor_radius',     'rlds.Rtip')
+            self.connect('hub.radius',                'rlds.Rhub')
+            self.connect('env.rho_air',               'rlds.rho')
+            self.connect('env.mu_air',                'rlds.mu')
+            self.connect('env.shear_exp',             'rlds.aero_hub_loads.shearExp')
+            self.connect('assembly.hub_height',       'rlds.hub_height')
+            self.connect('configuration.n_blades',    'rlds.nBlades')
         self.connect('assembly.r_blade',          'rlds.r')
         self.connect('hub.cone',                  'rlds.precone')
         self.connect('nacelle.uptilt',            'rlds.tilt')
@@ -266,15 +269,15 @@ class WT_RNTA(om.Group):
             self.connect('control.rated_power',        'drivese.machine_rating')    
             self.connect('tower.diameter',             'drivese.D_top', src_indices=[-1])
             
-            self.connect('rlds.aero_hub_loads.Fxyz_hub_aero', 'drivese.F_hub')
-            self.connect('rlds.aero_hub_loads.Mxyz_hub_aero', 'drivese.M_hub')
-            self.connect('rlds.frame.root_M',                 'drivese.pitch_system.BRFM', src_indices=[1])
+            if not modeling_options['flags']['external_loads']:
+                self.connect('rlds.aero_hub_loads.Fxyz_hub_aero', 'drivese.F_hub')
+                self.connect('rlds.aero_hub_loads.Mxyz_hub_aero', 'drivese.M_hub')
+                self.connect('rlds.frame.root_M',                 'drivese.pitch_system.BRFM', src_indices=[1])
                 
             self.connect('blade.pa.chord_param',              'drivese.blade_root_diameter', src_indices=[0])
             self.connect('elastic.precomp.blade_mass',        'drivese.blade_mass')
             self.connect('elastic.precomp.mass_all_blades',   'drivese.blades_mass')
             self.connect('elastic.precomp.I_all_blades',      'drivese.blades_I')
-
             self.connect('nacelle.distance_hub2mb',           'drivese.L_h1')
             self.connect('nacelle.distance_mb2mb',            'drivese.L_12')
             self.connect('nacelle.L_generator',               'drivese.L_generator')
@@ -608,7 +611,8 @@ class WindPark(om.Group):
                 self.connect('env.shear_exp',                   'landbosse.wind_shear_exponent')
                 self.connect('assembly.rotor_diameter',         'landbosse.rotor_diameter_m')
                 self.connect('configuration.n_blades',          'landbosse.number_of_blades')
-                if modeling_options['Analysis_Flags']['ServoSE']:
+ 
+                if not modeling_options['flags']['external_loads'] and modeling_options['Analysis_Flags']['ServoSE']:
                     self.connect('sse.powercurve.rated_T',          'landbosse.rated_thrust_N')
                 self.connect('towerse.tower_mass',              'landbosse.tower_mass')
                 self.connect('drivese.nacelle_mass',            'landbosse.nacelle_mass')
@@ -624,7 +628,7 @@ class WindPark(om.Group):
                 self.connect('bos.interconnect_voltage',        'landbosse.interconnect_voltage_kV')
             
         # Inputs to plantfinancese from wt group
-        if modeling_options['Analysis_Flags']['ServoSE']:
+        if not modeling_options['flags']['external_loads'] and modeling_options['Analysis_Flags']['ServoSE']:
             self.connect('sse.AEP',             'financese.turbine_aep')
 
         self.connect('tcc.turbine_cost_kW',     'financese.tcc_per_kW')
@@ -646,8 +650,8 @@ class WindPark(om.Group):
         self.connect('costs.fixed_charge_rate', 'financese.fixed_charge_rate')
 
         # Connections to outputs to screen
-        if modeling_options['Analysis_Flags']['ServoSE']:
+        if not modeling_options['flags']['external_loads'] and modeling_options['Analysis_Flags']['ServoSE']:
             self.connect('sse.AEP',                 'outputs_2_screen.aep')
             self.connect('financese.lcoe',          'outputs_2_screen.lcoe')
+            self.connect('rlds.tip_pos.tip_deflection', 'outputs_2_screen.tip_deflection')
         self.connect('elastic.precomp.blade_mass',  'outputs_2_screen.blade_mass')
-        self.connect('rlds.tip_pos.tip_deflection', 'outputs_2_screen.tip_deflection')
